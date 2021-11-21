@@ -50,12 +50,13 @@ public class BoidEntity : ModelEntity
 		_mgr = mgr;
 		_id = id;
 	}
-
+	
+	static readonly Model ConeModel = Model.Load( "models/citizen_props/roadcone01.vmdl" );
 	public override void Spawn()
 	{
 		base.Spawn();
 
-		SetModel( "models/citizen_props/roadcone01.vmdl" );
+		SetModel( ConeModel );
 		
 		//RenderColor = Color.Black;
 		//Scale = 0.5f;
