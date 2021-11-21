@@ -132,8 +132,8 @@ public class BoidEntity : ModelEntity
 		{
 			tempPos.z = 36f;
 		}
-
 		Position = tempPos;
+		ResetInterpolation();
 	}
 
 	private NeighbourStats GetNeighbourStats( IReadOnlyCollection<BoidData> nbs )
