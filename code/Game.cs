@@ -63,10 +63,10 @@ public class Game : Sandbox.Game
 
 		Current.FlockMgr.DeleteAll();
 
-		for ( var i = 0; i < 249; i++ )
+		for ( var i = 0; i < 199; i++ )
 		{
 			var boid = Current.FlockMgr.NewBoid();
-			boid.Position = new Vector3( Rand.Float( -300f, 300f ), Rand.Float( -300f, 300f ), 0 );
+			boid.Position = new Vector3( Rand.Float( -300f, 300f ), Rand.Float( -300f, 300f ), Rand.Float( 212f, 812f ) );
 			var phi = 2 * Math.PI * Rand.Float( 0, 1 );
 			boid.PhysicsGroup.Velocity =
 				new Vector3( (float)Math.Cos( phi ) * 500f, (float)Math.Sin( phi ) * 500f );

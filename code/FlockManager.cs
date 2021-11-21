@@ -4,7 +4,7 @@ using System.Linq;
 namespace Boids;
 public class FlockManager : IFlockManager
 {
-	private const float MaxDistance = 20;
+	private const float MaxDistance = 65;
 	private List<BoidData> _flock;
 	private int _lastId;
 
@@ -30,7 +30,7 @@ public class FlockManager : IFlockManager
 			}
 		}
 
-		foreach ( (var boid, var i) in _flock.Select( ( value, i ) => (value, i) ) )
+		foreach ( var (boid, i) in _flock.Select( ( value, i ) => (value, i) ) )
 		{
 			if ( i == id || nbIds.Contains( id ) )
 			{

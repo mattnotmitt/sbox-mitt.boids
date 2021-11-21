@@ -6,3 +6,4 @@ _bakeresourcecache
 tools_thumbnail_cache.bin
 .vs
 .idea
+*.zip

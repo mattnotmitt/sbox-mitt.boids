@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Sandbox;
+using Sandbox.Internal;
 
 namespace Boids;
 
@@ -25,6 +26,7 @@ public class BoidEntity : ModelEntity
 {
 	private readonly int _id;
 	private readonly IFlockManager _mgr;
+	private const float MaxSpeed = 500f;
 
 	public override Vector3 Velocity
 	{
@@ -34,7 +36,7 @@ public class BoidEntity : ModelEntity
 		}
 		set
 		{
-			Rotation = Rotation.LookAt( value ).RotateAroundAxis( Vector3.OneY, 90 );
+			Rotation = Rotation.LookAt(value).RotateAroundAxis(Vector3.OneY, 90);
 			base.Velocity = value;
 		}
 	}
@@ -54,32 +56,46 @@ public class BoidEntity : ModelEntity
 		base.Spawn();
 
 		SetModel( "models/citizen_props/roadcone01.vmdl" );
+		
 		//RenderColor = Color.Black;
-		Scale = 0.5f;
+		//Scale = 0.5f;
 
 		SetupPhysicsFromModel( PhysicsMotionType.Dynamic, true );
 		PhysicsBody.GravityEnabled = false;
 		EnableAllCollisions = false;
+		CollisionGroup = CollisionGroup.Never;
+		SetInteractsExclude( CollisionLayer.All );
 	}
 
 	[Event( "server.tick" )]
 	public void Behaviour()
 	{
 		var nbs = _mgr.Neighbours( _id );
+		// DebugOverlay.Line( Position, Position + (Velocity * 0.1f), Color.Magenta, Time.Delta );
+		// DebugOverlay.Sphere( Position, 50f, Color.Green.WithAlpha(0.5f), duration: Time.Delta );
+		// DebugOverlay.Sphere( Position, 20f, Color.Cyan.WithAlpha(0.5f), duration: Time.Delta );
+		if ( nbs.Count > 0 )
+		{
+
+			// Get resultant vectors from each of the rules
+			// ChangeColorBasedOnNeighbours(nbs);
+			var tmpVel = Velocity;
+			var accel = Vector3.Zero;
+			var nbStats = GetNeighbourStats( nbs );
+			// DebugOverlay.Line( Position, Position + (nbStats.AvAlignment.Normal * 50f), Color.Red, Time.Delta);
+			// DebugOverlay.Line( Position, nbStats.AvPosition / nbs.Count, Color.Orange, Time.Delta );
+			// DebugOverlay.Line( Position, Position + (nbStats.Avoidance.Normal * 50f), Color.Black, Time.Delta);
+			accel += SteerTowards( nbStats.AvAlignment );
+			accel += SteerTowards( nbStats.AvPosition / nbs.Count - Position );
+			accel += SteerTowards( nbStats.Avoidance ) * 1.3f;
+			tmpVel += accel * Time.Delta;
+			var speed = tmpVel.Length;
+			var dir = tmpVel / speed;
+			Velocity = dir * Math.Clamp( speed, 200, MaxSpeed );
+		}
+
 		KeepConstrained();
 		_mgr.UpdatePosition( _id, Position );
-		// Get resultant vectors from each of the rules
-		// ChangeColorBasedOnNeighbours(nbs);
-		var tmpVel = Velocity;
-		var accel = Vector3.Zero;
-		var nbStats = GetNeighbourStats( nbs );
-		accel += SteerTowards(nbStats.AvAlignment);
-		accel += SteerTowards( nbStats.AvPosition/nbs.Count - Position);
-		accel += SteerTowards( nbStats.Avoidance );
-		tmpVel += accel * Time.Delta;
-		var speed = tmpVel.Length;
-		var dir = tmpVel / speed;
-		Velocity = dir * Math.Clamp(speed, 150, 400);
 	}
 
 	private void ChangeColorBasedOnNeighbours(ICollection nbs)
@@ -91,30 +107,33 @@ public class BoidEntity : ModelEntity
 
 	private void KeepConstrained()
 	{
+		var tempPos = Position;
 		if ( Position.x > 512f )
 		{
-			var tempPos = Position;
 			tempPos.x = -480f;
-			Position = tempPos;
 		}
 		else if ( Position.y > 512f )
 		{
-			var tempPos = Position;
 			tempPos.y = -480f;
-			Position = tempPos;
 		}
 		else if ( Position.x < -512f )
 		{
-			var tempPos = Position;
 			tempPos.x = 480f;
-			Position = tempPos;
 		}
 		else if ( Position.y < -512f )
 		{
-			var tempPos = Position;
 			tempPos.y = 480f;
-			Position = tempPos;
 		}
+		else if ( Position.z < 0f )
+		{
+			tempPos.z = 988f;
+		}
+		else if ( Position.z > 1024f )
+		{
+			tempPos.z = 36f;
+		}
+
+		Position = tempPos;
 	}
 
 	private NeighbourStats GetNeighbourStats( IReadOnlyCollection<BoidData> nbs )
@@ -122,18 +141,18 @@ public class BoidEntity : ModelEntity
 		var nbStats = new NeighbourStats( Vector3.Zero, Vector3.Zero, Vector3.Zero );
 		foreach ( var nb in nbs )
 		{
-			var offset = Position - nb.Position;
+			var offset = nb.Position - Position;
 			var dstSqr = offset.LengthSquared;
 			nbStats.AvAlignment += nb.Entity.Velocity;
 			nbStats.AvPosition += nb.Position;
-			nbStats.Avoidance -= dstSqr < 10f * 10f ? offset / dstSqr : Vector3.Zero;
+			nbStats.Avoidance -= dstSqr < (35f * 35f) ? offset / dstSqr : Vector3.Zero;
 		}
 
 		return nbStats;
 	}
 	
 	private Vector3 SteerTowards (Vector3 vector) {
-		var v = vector.Normal * 400 - Velocity;
-		return v.ClampLength(400);
+		var v = vector.Normal * MaxSpeed - Velocity;
+		return v.ClampLength(MaxSpeed);
 	}
 }
